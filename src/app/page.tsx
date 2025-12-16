@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 export default function Home() {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [url, setUrl] = useState("");
-  const [mode, setMode] = useState<"about" | "thesis" | "telegram" | null>(
+  const [mode, setMode] = useState<"about" | "thesis" | "telegram" | "translate" | null>(
     null,
   );
   const [result, setResult] = useState<string | null>(null);
@@ -38,7 +38,7 @@ export default function Home() {
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
   };
 
-  const handleAction = async (nextMode: "about" | "thesis" | "telegram") => {
+  const handleAction = async (nextMode: "about" | "thesis" | "telegram" | "translate") => {
     if (!url.trim()) {
       setResult("Пожалуйста, введите URL статьи.");
       setMode(null);
@@ -49,8 +49,8 @@ export default function Home() {
     setMode(nextMode);
 
     try {
-      // Вызываем API для парсинга статьи
-      const response = await fetch("/api/parse-article", {
+      // Сначала парсим статью
+      const parseResponse = await fetch("/api/parse-article", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -58,8 +58,8 @@ export default function Home() {
         body: JSON.stringify({ url: url.trim() }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
+      if (!parseResponse.ok) {
+        const errorData = await parseResponse.json();
         setResult(
           `Ошибка: ${errorData.error || "Не удалось обработать статью"}`
         );
@@ -67,11 +67,40 @@ export default function Home() {
         return;
       }
 
-      const data = await response.json();
-      
-      // Форматируем JSON для красивого отображения
-      const jsonResult = JSON.stringify(data, null, 2);
-      setResult(jsonResult);
+      const parsedData = await parseResponse.json();
+
+      // Если режим перевода, переводим контент
+      if (nextMode === "translate") {
+        if (!parsedData.content) {
+          setResult("Не удалось извлечь контент статьи для перевода.");
+          setIsLoading(false);
+          return;
+        }
+
+        const translateResponse = await fetch("/api/translate", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ content: parsedData.content }),
+        });
+
+        if (!translateResponse.ok) {
+          const errorData = await translateResponse.json();
+          setResult(
+            `Ошибка перевода: ${errorData.error || "Не удалось перевести статью"}`
+          );
+          setIsLoading(false);
+          return;
+        }
+
+        const translateData = await translateResponse.json();
+        setResult(translateData.translation || "Перевод не получен.");
+      } else {
+        // Для других режимов показываем JSON
+        const jsonResult = JSON.stringify(parsedData, null, 2);
+        setResult(jsonResult);
+      }
     } catch (error) {
       setResult(`Ошибка при обработке: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
@@ -182,6 +211,18 @@ export default function Home() {
               } ${isLoading ? "opacity-70 cursor-wait" : ""}`}
             >
               Пост для Telegram
+            </button>
+            <button
+              type="button"
+              onClick={() => handleAction("translate")}
+              disabled={isLoading}
+              className={`inline-flex items-center justify-center rounded-full px-4 py-2.5 text-sm font-medium transition border ${
+                mode === "translate"
+                  ? "bg-sky-500 text-white border-sky-400 shadow-lg shadow-sky-500/30"
+                  : "dark:bg-slate-800/80 bg-slate-100 dark:text-slate-50 text-slate-900 dark:border-slate-700 border-slate-300 dark:hover:bg-slate-700/90 hover:bg-slate-200"
+              } ${isLoading ? "opacity-70 cursor-wait" : ""}`}
+            >
+              Перевести
             </button>
           </div>
         </section>
