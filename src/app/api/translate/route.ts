@@ -11,10 +11,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Ограничиваем длину контента для перевода (примерно 8000 токенов)
+    const maxLength = 30000; // примерно 8000 токенов
+    const contentToTranslate = content.length > maxLength 
+      ? content.substring(0, maxLength) + "\n\n[... текст обрезан ...]"
+      : content;
+
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) {
+      console.error("OPENROUTER_API_KEY is not set in environment variables");
       return NextResponse.json(
-        { error: "OpenRouter API key is not configured" },
+        { 
+          error: "OpenRouter API key is not configured",
+          details: "Please set OPENROUTER_API_KEY in your environment variables"
+        },
         { status: 500 }
       );
     }
@@ -37,7 +47,7 @@ export async function POST(request: NextRequest) {
           },
           {
             role: "user",
-            content: `Переведи на русский язык следующий текст:\n\n${content}`,
+            content: `Переведи на русский язык следующий текст:\n\n${contentToTranslate}`,
           },
         ],
       }),
@@ -45,31 +55,66 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("OpenRouter API error:", errorText);
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { message: errorText };
+      }
+      console.error("OpenRouter API error:", {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData,
+      });
       return NextResponse.json(
-        { error: `Translation failed: ${response.statusText}` },
-        { status: response.status }
+        { 
+          error: `Translation failed: ${response.statusText}`,
+          details: errorData.message || errorText,
+          status: response.status
+        },
+        { status: 500 }
       );
     }
 
     const data = await response.json();
 
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error("Invalid response structure:", JSON.stringify(data, null, 2));
       return NextResponse.json(
-        { error: "Invalid response from translation service" },
+        { 
+          error: "Invalid response from translation service",
+          details: "Response structure is not as expected"
+        },
         { status: 500 }
       );
     }
 
     const translatedText = data.choices[0].message.content;
 
+    if (!translatedText) {
+      console.error("Empty translation received");
+      return NextResponse.json(
+        { 
+          error: "Empty translation received",
+          details: "The translation service returned an empty response"
+        },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({
       translation: translatedText,
     });
   } catch (error) {
     console.error("Error translating:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
     return NextResponse.json(
-      { error: "Failed to translate", details: String(error) },
+      { 
+        error: "Failed to translate",
+        details: errorMessage,
+        stack: process.env.NODE_ENV === "development" ? errorStack : undefined
+      },
       { status: 500 }
     );
   }

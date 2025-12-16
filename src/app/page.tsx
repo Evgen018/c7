@@ -87,8 +87,10 @@ export default function Home() {
 
         if (!translateResponse.ok) {
           const errorData = await translateResponse.json();
+          const errorMessage = errorData.error || "Не удалось перевести статью";
+          const errorDetails = errorData.details ? `\n\nДетали: ${errorData.details}` : "";
           setResult(
-            `Ошибка перевода: ${errorData.error || "Не удалось перевести статью"}`
+            `Ошибка перевода: ${errorMessage}${errorDetails}`
           );
           setIsLoading(false);
           return;
