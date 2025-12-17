@@ -4,6 +4,10 @@
 import { useState, useEffect } from "react";
 
 export default function Home() {
+  // Управление видимостью кнопки "Перевести"
+  // Чтобы показать кнопку, измените значение на true
+  const SHOW_TRANSLATE_BUTTON = false;
+
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [url, setUrl] = useState("");
   const [mode, setMode] = useState<"about" | "thesis" | "telegram" | "translate" | null>(
@@ -270,18 +274,20 @@ export default function Home() {
             >
               Пост для Telegram
             </button>
-            <button
-              type="button"
-              onClick={() => handleAction("translate")}
-              disabled={isLoading}
-              className={`inline-flex items-center justify-center rounded-full px-4 py-2.5 text-sm font-medium transition border ${
-                mode === "translate"
-                  ? "bg-sky-500 text-white border-sky-400 shadow-lg shadow-sky-500/30"
-                  : "dark:bg-slate-800/80 bg-slate-100 dark:text-slate-50 text-slate-900 dark:border-slate-700 border-slate-300 dark:hover:bg-slate-700/90 hover:bg-slate-200"
-              } ${isLoading ? "opacity-70 cursor-wait" : ""}`}
-            >
-              Перевести
-            </button>
+            {SHOW_TRANSLATE_BUTTON && (
+              <button
+                type="button"
+                onClick={() => handleAction("translate")}
+                disabled={isLoading}
+                className={`inline-flex items-center justify-center rounded-full px-4 py-2.5 text-sm font-medium transition border ${
+                  mode === "translate"
+                    ? "bg-sky-500 text-white border-sky-400 shadow-lg shadow-sky-500/30"
+                    : "dark:bg-slate-800/80 bg-slate-100 dark:text-slate-50 text-slate-900 dark:border-slate-700 border-slate-300 dark:hover:bg-slate-700/90 hover:bg-slate-200"
+                } ${isLoading ? "opacity-70 cursor-wait" : ""}`}
+              >
+                Перевести
+              </button>
+            )}
           </div>
         </section>
 
