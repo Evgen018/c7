@@ -8,11 +8,11 @@ import { AlertCircle, Copy, X } from "lucide-react";
 export default function Home() {
   // Управление видимостью кнопки "Перевести"
   // Чтобы показать кнопку, измените значение на true
-  const SHOW_TRANSLATE_BUTTON = false;
+  const SHOW_TRANSLATE_BUTTON = true;
 
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [url, setUrl] = useState("");
-  const [mode, setMode] = useState<"about" | "thesis" | "telegram" | "translate" | "illustration" | null>(
+  const [mode, setMode] = useState<"about" | "thesis" | "telegram" | "translate" | null>(
     null,
   );
   const [result, setResult] = useState<string | null>(null);
@@ -134,7 +134,7 @@ export default function Home() {
     }
   };
 
-  const handleAction = async (nextMode: "about" | "thesis" | "telegram" | "translate" | "illustration") => {
+  const handleAction = async (nextMode: "about" | "thesis" | "telegram" | "translate") => {
     if (!url.trim()) {
       setResult("Пожалуйста, введите URL статьи.");
       setMode(null);
@@ -213,12 +213,11 @@ export default function Home() {
         setProcessStatus(null);
         setError(null);
       } else {
-        // Для режимов about, thesis, telegram, illustration вызываем AI-обработку
+        // Для режимов about, thesis, telegram вызываем AI-обработку
         const statusMessages = {
           about: "Анализирую статью…",
           thesis: "Формирую тезисы…",
-          telegram: "Создаю пост для Telegram…",
-          illustration: "Создаю иллюстрацию…"
+          telegram: "Создаю пост для Telegram…"
         };
         setProcessStatus(statusMessages[nextMode]);
         const aiResponse = await fetch("/api/ai-process", {
@@ -391,19 +390,6 @@ export default function Home() {
               } ${isLoading ? "opacity-70 cursor-wait" : ""}`}
             >
               Пост для Telegram
-            </button>
-            <button
-              type="button"
-              onClick={() => handleAction("illustration")}
-              disabled={isLoading}
-              title="Создать иллюстрацию на основе статьи"
-              className={`w-full sm:w-auto inline-flex items-center justify-center rounded-full px-4 py-2.5 text-sm font-medium transition border ${
-                mode === "illustration"
-                  ? "bg-sky-500 text-white border-sky-400 shadow-lg shadow-sky-500/30"
-                  : "dark:bg-slate-800/80 bg-slate-100 dark:text-slate-50 text-slate-900 dark:border-slate-700 border-slate-300 dark:hover:bg-slate-700/90 hover:bg-slate-200"
-              } ${isLoading ? "opacity-70 cursor-wait" : ""}`}
-            >
-              Иллюстрация
             </button>
             {SHOW_TRANSLATE_BUTTON && (
               <button

@@ -27,12 +27,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!mode || !["about", "thesis", "telegram", "illustration"].includes(mode)) {
+    if (!mode || !["about", "thesis", "telegram"].includes(mode)) {
       console.error("AI Process: Mode validation failed - invalid mode:", mode);
       return NextResponse.json(
         { 
           error: "Invalid mode",
-          details: "Mode must be one of: 'about', 'thesis', 'telegram', or 'illustration'"
+          details: "Mode must be one of: 'about', 'thesis', or 'telegram'"
         },
         { status: 400 }
       );
@@ -130,27 +130,6 @@ ${contentToProcess}
 - Сделай пост привлекательным и легко читаемым
 - Без предисловий, только готовый пост`;
         break;
-      
-      case "illustration":
-        systemPrompt = `Ты профессиональный иллюстратор и дизайнер. Твоя задача - создать детальное описание иллюстрации на основе статьи на русском языке.
-
-Требования:
-- Объем: 1-2 абзаца (примерно 100-200 слов)
-- Язык: только русский
-- Стиль: детальное описание визуального представления статьи
-- Включи: основные элементы, цветовую палитру, композицию, настроение
-- Опиши, как должна выглядеть иллюстрация, которая визуально передает суть статьи
-- Без дополнительных комментариев, только описание иллюстрации`;
-
-        userPrompt = `Создай детальное описание иллюстрации на основе следующей статьи. Опиши, как должна выглядеть визуальная иллюстрация, передающая суть статьи:
-
-${contentToProcess}
-
-Важно: 
-- Описание должно быть на русском языке
-- Детально опиши визуальные элементы, цвета, композицию
-- Без предисловий, только описание иллюстрации`;
-        break;
     }
 
     // Вызываем OpenRouter API для AI-обработки
@@ -175,7 +154,7 @@ ${contentToProcess}
           },
         ],
         // Параметры для контроля длины и качества ответа
-        max_tokens: mode === "telegram" ? 800 : mode === "about" ? 600 : mode === "illustration" ? 500 : 1000,
+        max_tokens: mode === "telegram" ? 800 : mode === "about" ? 600 : 1000,
         temperature: 0.7, // Баланс между креативностью и точностью
       }),
     });
