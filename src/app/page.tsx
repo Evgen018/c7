@@ -1,14 +1,14 @@
 /* Главная страница: форма URL + кнопки действий + блок результата */
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Copy, X } from "lucide-react";
 
 export default function Home() {
   // Управление видимостью кнопки "Перевести"
   // Чтобы показать кнопку, измените значение на true
-  const SHOW_TRANSLATE_BUTTON = true;
+  const SHOW_TRANSLATE_BUTTON = false;
 
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [url, setUrl] = useState("");
@@ -19,6 +19,8 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [processStatus, setProcessStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const resultRef = useRef<HTMLDivElement>(null);
 
   // Загружаем тему из localStorage при монтировании и применяем сразу
   useEffect(() => {
@@ -45,6 +47,39 @@ export default function Home() {
   const toggleTheme = () => {
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
   };
+
+  // Функция для очистки всех состояний
+  const handleClear = () => {
+    setUrl("");
+    setResult(null);
+    setError(null);
+    setMode(null);
+    setProcessStatus(null);
+    setIsLoading(false);
+    setCopied(false);
+  };
+
+  // Функция для копирования результата в буфер обмена
+  const handleCopy = async () => {
+    if (result) {
+      try {
+        await navigator.clipboard.writeText(result);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (err) {
+        console.error("Failed to copy:", err);
+      }
+    }
+  };
+
+  // Автоматическая прокрутка к результатам после успешной генерации
+  useEffect(() => {
+    if (result && !isLoading && resultRef.current) {
+      setTimeout(() => {
+        resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
+  }, [result, isLoading]);
 
   // Функция для преобразования ошибок в дружественные сообщения
   const getFriendlyErrorMessage = (
@@ -236,8 +271,8 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen dark:bg-slate-950 bg-slate-50 dark:text-slate-50 text-slate-900 flex items-center justify-center px-4 py-10">
-      <main className="w-full max-w-3xl rounded-2xl dark:bg-slate-900/40 bg-white/80 dark:border-slate-800 border-slate-200 border shadow-xl dark:shadow-black/40 shadow-slate-900/20 backdrop-blur-md p-6 sm:p-8 space-y-8">
+    <div className="min-h-screen dark:bg-slate-950 bg-slate-50 dark:text-slate-50 text-slate-900 flex items-center justify-center px-4 sm:px-6 py-6 sm:py-10">
+      <main className="w-full max-w-3xl rounded-2xl dark:bg-slate-900/40 bg-white/80 dark:border-slate-800 border-slate-200 border shadow-xl dark:shadow-black/40 shadow-slate-900/20 backdrop-blur-md p-4 sm:p-6 md:p-8 space-y-6 sm:space-y-8">
         <header className="space-y-2">
           <div className="flex items-center justify-between">
             <p className="text-xs font-medium uppercase tracking-[0.25em] dark:text-sky-400/90 text-sky-600">
@@ -279,36 +314,51 @@ export default function Home() {
               )}
             </button>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight dark:text-slate-50 text-slate-900">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight dark:text-slate-50 text-slate-900 break-words">
             Кратко и по делу про любую англоязычную статью
           </h1>
-          <p className="text-sm sm:text-base dark:text-slate-300 text-slate-600 max-w-xl">
+          <p className="text-sm sm:text-base dark:text-slate-300 text-slate-600 max-w-xl break-words">
             Вставьте ссылку на статью на английском языке, выберите действие —
             и получите выжимку, тезисы или пост для Telegram.
           </p>
         </header>
 
-        <section className="space-y-4">
-          <label className="block text-sm font-medium dark:text-slate-200 text-slate-700">
-            URL статьи
-          </label>
-          <div className="flex flex-col gap-3 sm:flex-row">
+        <section className="space-y-3 sm:space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
+            <label className="block text-sm font-medium dark:text-slate-200 text-slate-700">
+              URL статьи
+            </label>
+            {url.trim() && (
+              <button
+                type="button"
+                onClick={handleClear}
+                disabled={isLoading}
+                title="Очистить все поля и результаты"
+                className="self-start sm:self-auto inline-flex items-center gap-1.5 rounded-lg px-2.5 sm:px-3 py-1.5 text-xs font-medium transition dark:bg-slate-800/80 bg-slate-100 dark:text-slate-300 text-slate-700 dark:border-slate-700 border-slate-300 dark:hover:bg-slate-700/90 hover:bg-slate-200 border disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <X className="h-3.5 w-3.5 flex-shrink-0" />
+                <span className="hidden sm:inline">Очистить</span>
+                <span className="sm:hidden">Очистить</span>
+              </button>
+            )}
+          </div>
+          <div className="flex flex-col gap-3">
             <input
               type="url"
               placeholder="Введите URL статьи, например: https://example.com/article"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              className="flex-1 rounded-xl dark:border-slate-700 border-slate-300 dark:bg-slate-900/60 bg-white dark:text-slate-50 text-slate-900 px-3 py-2.5 text-sm dark:placeholder:text-slate-500 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition border"
+              className="w-full rounded-xl dark:border-slate-700 border-slate-300 dark:bg-slate-900/60 bg-white dark:text-slate-50 text-slate-900 px-3 sm:px-4 py-2.5 text-sm dark:placeholder:text-slate-500 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition border"
             />
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-3 pt-2">
             <button
               type="button"
               onClick={() => handleAction("about")}
               disabled={isLoading}
               title="Получить краткое описание статьи"
-              className={`inline-flex items-center justify-center rounded-full px-4 py-2.5 text-sm font-medium transition border ${
+              className={`w-full sm:w-auto inline-flex items-center justify-center rounded-full px-4 py-2.5 text-sm font-medium transition border ${
                 mode === "about"
                   ? "bg-sky-500 text-white border-sky-400 shadow-lg shadow-sky-500/30"
                   : "dark:bg-slate-800/80 bg-slate-100 dark:text-slate-50 text-slate-900 dark:border-slate-700 border-slate-300 dark:hover:bg-slate-700/90 hover:bg-slate-200"
@@ -321,7 +371,7 @@ export default function Home() {
               onClick={() => handleAction("thesis")}
               disabled={isLoading}
               title="Сформировать тезисы статьи"
-              className={`inline-flex items-center justify-center rounded-full px-4 py-2.5 text-sm font-medium transition border ${
+              className={`w-full sm:w-auto inline-flex items-center justify-center rounded-full px-4 py-2.5 text-sm font-medium transition border ${
                 mode === "thesis"
                   ? "bg-sky-500 text-white border-sky-400 shadow-lg shadow-sky-500/30"
                   : "dark:bg-slate-800/80 bg-slate-100 dark:text-slate-50 text-slate-900 dark:border-slate-700 border-slate-300 dark:hover:bg-slate-700/90 hover:bg-slate-200"
@@ -334,7 +384,7 @@ export default function Home() {
               onClick={() => handleAction("telegram")}
               disabled={isLoading}
               title="Создать пост для Telegram на основе статьи"
-              className={`inline-flex items-center justify-center rounded-full px-4 py-2.5 text-sm font-medium transition border ${
+              className={`w-full sm:w-auto inline-flex items-center justify-center rounded-full px-4 py-2.5 text-sm font-medium transition border ${
                 mode === "telegram"
                   ? "bg-sky-500 text-white border-sky-400 shadow-lg shadow-sky-500/30"
                   : "dark:bg-slate-800/80 bg-slate-100 dark:text-slate-50 text-slate-900 dark:border-slate-700 border-slate-300 dark:hover:bg-slate-700/90 hover:bg-slate-200"
@@ -347,7 +397,7 @@ export default function Home() {
               onClick={() => handleAction("illustration")}
               disabled={isLoading}
               title="Создать иллюстрацию на основе статьи"
-              className={`inline-flex items-center justify-center rounded-full px-4 py-2.5 text-sm font-medium transition border ${
+              className={`w-full sm:w-auto inline-flex items-center justify-center rounded-full px-4 py-2.5 text-sm font-medium transition border ${
                 mode === "illustration"
                   ? "bg-sky-500 text-white border-sky-400 shadow-lg shadow-sky-500/30"
                   : "dark:bg-slate-800/80 bg-slate-100 dark:text-slate-50 text-slate-900 dark:border-slate-700 border-slate-300 dark:hover:bg-slate-700/90 hover:bg-slate-200"
@@ -361,7 +411,7 @@ export default function Home() {
                 onClick={() => handleAction("translate")}
                 disabled={isLoading}
                 title="Перевести статью на русский язык"
-                className={`inline-flex items-center justify-center rounded-full px-4 py-2.5 text-sm font-medium transition border ${
+                className={`w-full sm:w-auto inline-flex items-center justify-center rounded-full px-4 py-2.5 text-sm font-medium transition border ${
                   mode === "translate"
                     ? "bg-sky-500 text-white border-sky-400 shadow-lg shadow-sky-500/30"
                     : "dark:bg-slate-800/80 bg-slate-100 dark:text-slate-50 text-slate-900 dark:border-slate-700 border-slate-300 dark:hover:bg-slate-700/90 hover:bg-slate-200"
@@ -375,38 +425,55 @@ export default function Home() {
 
         {processStatus && (
           <div className="rounded-xl dark:bg-sky-500/10 bg-sky-50 dark:border-sky-500/20 border-sky-200 border p-3 sm:p-4">
-            <p className="text-sm dark:text-sky-400 text-sky-600 font-medium">
+            <p className="text-sm dark:text-sky-400 text-sky-600 font-medium break-words">
               {processStatus}
             </p>
           </div>
         )}
 
         {error && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
+          <Alert variant="destructive" className="break-words">
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
             <AlertTitle>Ошибка</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription className="break-words">{error}</AlertDescription>
           </Alert>
         )}
 
-        <section className="rounded-xl dark:border-slate-800 border-slate-200 dark:bg-slate-950/40 bg-slate-50/80 border p-4 sm:p-5 min-h-[140px] space-y-2">
-          <div className="flex items-center justify-between gap-2">
+        <section 
+          ref={resultRef}
+          className="rounded-xl dark:border-slate-800 border-slate-200 dark:bg-slate-950/40 bg-slate-50/80 border p-4 sm:p-5 min-h-[140px] space-y-2"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <h2 className="text-sm font-semibold dark:text-slate-100 text-slate-900">
               Результат
             </h2>
-            {isLoading && (
-              <span className="text-xs dark:text-sky-400 text-sky-600 animate-pulse">
-                Идет генерация…
-              </span>
-            )}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {isLoading && (
+                <span className="text-xs dark:text-sky-400 text-sky-600 animate-pulse whitespace-nowrap">
+                  Идет генерация…
+                </span>
+              )}
+              {result && !isLoading && (
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  title="Копировать результат"
+                  className="inline-flex items-center gap-1.5 rounded-lg px-2 sm:px-2.5 py-1.5 text-xs font-medium transition dark:bg-slate-800/80 bg-slate-100 dark:text-slate-300 text-slate-700 dark:border-slate-700 border-slate-300 dark:hover:bg-slate-700/90 hover:bg-slate-200 border"
+                >
+                  <Copy className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span className="hidden sm:inline">{copied ? "Скопировано!" : "Копировать"}</span>
+                  <span className="sm:hidden">{copied ? "✓" : ""}</span>
+                </button>
+              )}
+            </div>
           </div>
 
-          <div className="mt-1 text-sm leading-relaxed dark:text-slate-200 text-slate-700 whitespace-pre-wrap">
+          <div className="mt-1 text-sm leading-relaxed dark:text-slate-200 text-slate-700 whitespace-pre-wrap break-words overflow-wrap-anywhere">
             {result ?? "Здесь появится результат обработки статьи."}
           </div>
         </section>
 
-        <footer className="pt-1 text-[11px] dark:text-slate-500 text-slate-400 flex flex-wrap items-center gap-x-2 gap-y-1">
+        <footer className="pt-1 text-[11px] sm:text-xs dark:text-slate-500 text-slate-400 flex flex-wrap items-center gap-x-2 gap-y-1 break-words">
           <span>Сервис-помощник для работы с англоязычными текстами.</span>
           <span className="hidden sm:inline">·</span>
           <span>Обработка с помощью AI через OpenRouter.</span>
