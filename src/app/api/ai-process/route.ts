@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
-    const { content, mode } = await request.json();
+    const { content, mode, language = "ru" } = await request.json();
 
     // Валидация входных данных
     if (!content || typeof content !== "string") {
@@ -68,9 +68,20 @@ export async function POST(request: NextRequest) {
     let systemPrompt = "";
     let userPrompt = "";
 
+    const isMontenegrin = language === "me";
+    
     switch (mode) {
       case "about":
-        systemPrompt = `Ты профессиональный аналитик текстов. Твоя задача - создать краткое, но информативное описание статьи на русском языке.
+        systemPrompt = isMontenegrin
+          ? `Ti si profesionalni analitičar tekstova. Tvoja zadaća je da kreiraš kratak, ali informativan opis članka na crnogorskom jeziku.
+
+Zahtjevi:
+- Obim: 2-3 paragrafa (oko 150-250 riječi)
+- Jezik: samo crnogorski
+- Struktura: prvi paragraf - o čemu je članak, drugi - glavne ideje, treći (opciono) - važni zaključci
+- Stil: profesionalan, ali pristupačan
+- Ne dodavaj nepotrebne komentare, samo opis članka`
+          : `Ты профессиональный аналитик текстов. Твоя задача - создать краткое, но информативное описание статьи на русском языке.
 
 Требования:
 - Объем: 2-3 абзаца (примерно 150-250 слов)
@@ -79,7 +90,13 @@ export async function POST(request: NextRequest) {
 - Стиль: профессиональный, но доступный
 - Не добавляй лишних комментариев, только описание статьи`;
 
-        userPrompt = `Проанализируй следующую статью и напиши краткое описание на русском языке (2-3 абзаца):
+        userPrompt = isMontenegrin
+          ? `Analiziraj sljedeći članak i napiši kratak opis na crnogorskom jeziku (2-3 paragrafa):
+
+${contentToProcess}
+
+Važno: Odgovor mora biti samo na crnogorskom jeziku, bez predgovora i komentara.`
+          : `Проанализируй следующую статью и напиши краткое описание на русском языке (2-3 абзаца):
 
 ${contentToProcess}
 
@@ -87,7 +104,17 @@ ${contentToProcess}
         break;
       
       case "thesis":
-        systemPrompt = `Ты эксперт по структурированию информации. Твоя задача - извлечь ключевые тезисы из статьи и представить их в виде нумерованного списка на русском языке.
+        systemPrompt = isMontenegrin
+          ? `Ti si ekspert za strukturisanje informacija. Tvoja zadaća je da izvučeš ključne teze iz članka i predstaviš ih u obliku numerisanog spiska na crnogorskom jeziku.
+
+Zahtjevi:
+- Format: numerisani spisak (1., 2., 3., ...)
+- Količina: 5-10 teza (zavisno od obima članka)
+- Svaka teza: 1-2 rečenice, jasno formulirajući misao
+- Jezik: samo crnogorski
+- Prioritet: najvažnije i najznačajnije ideje članka
+- Bez dodatnih komentara, samo spisak teza`
+          : `Ты эксперт по структурированию информации. Твоя задача - извлечь ключевые тезисы из статьи и представить их в виде нумерованного списка на русском языке.
 
 Требования:
 - Формат: нумерованный список (1., 2., 3., ...)
@@ -97,7 +124,13 @@ ${contentToProcess}
 - Приоритет: самые важные и значимые идеи статьи
 - Без дополнительных комментариев, только список тезисов`;
 
-        userPrompt = `Извлеки основные тезисы из следующей статьи и представь их в виде нумерованного списка на русском языке:
+        userPrompt = isMontenegrin
+          ? `Izvadi glavne teze iz sljedećeg članka i predstavi ih u obliku numerisanog spiska na crnogorskom jeziku:
+
+${contentToProcess}
+
+Važno: Odgovor mora biti samo numerisani spisak na crnogorskom jeziku, bez predgovora.`
+          : `Извлеки основные тезисы из следующей статьи и представь их в виде нумерованного списка на русском языке:
 
 ${contentToProcess}
 
@@ -105,7 +138,22 @@ ${contentToProcess}
         break;
       
       case "telegram":
-        systemPrompt = `Ты профессиональный копирайтер для социальных сетей. Твоя задача - создать готовый пост для Telegram на основе статьи.
+        systemPrompt = isMontenegrin
+          ? `Ti si profesionalni copywriter za društvene mreže. Tvoja zadaća je da kreiraš gotov post za Telegram na osnovu članka.
+
+Zahtjevi:
+- Dužina: 200-400 riječi (optimalno za Telegram)
+- Jezik: samo crnogorski
+- Struktura: 
+  * Naslov/prva linija (privlači pažnju)
+  * Glavni tekst (informativan, lako čitljiv)
+  * Poziv na akciju ili zaključak (opciono)
+- Emoji: koristi 3-5 emoji za vizuelno oblikovanje, ali ne pretjeruj
+- Stil: živ, zanimljiv, ali profesionalan
+- Formatiranje: koristi prelome linija za čitljivost
+- Bez hashtagova i linkova (samo tekst)
+- Spreman za objavu bez dodatnog uređivanja`
+          : `Ты профессиональный копирайтер для социальных сетей. Твоя задача - создать готовый пост для Telegram на основе статьи.
 
 Требования:
 - Длина: 200-400 слов (оптимально для Telegram)
@@ -120,7 +168,17 @@ ${contentToProcess}
 - Без хештегов и ссылок (только текст)
 - Готов к публикации без дополнительного редактирования`;
 
-        userPrompt = `Создай готовый пост для Telegram на основе следующей статьи. Пост должен быть интересным, информативным и готовым к публикации:
+        userPrompt = isMontenegrin
+          ? `Kreiraj gotov post za Telegram na osnovu sljedećeg članka. Post mora biti zanimljiv, informativan i spreman za objavu:
+
+${contentToProcess}
+
+Važno: 
+- Post mora biti na crnogorskom jeziku
+- Koristi emoji za oblikovanje (3-5 komada)
+- Učini post privlačnim i lako čitljivim
+- Bez predgovora, samo gotov post`
+          : `Создай готовый пост для Telegram на основе следующей статьи. Пост должен быть интересным, информативным и готовым к публикации:
 
 ${contentToProcess}
 

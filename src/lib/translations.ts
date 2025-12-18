@@ -1,0 +1,124 @@
+export type Language = "ru" | "me";
+
+export const translations = {
+  ru: {
+    // Header
+    appName: "референт‑переводчик",
+    title: "Кратко и по делу про любую англоязычную статью",
+    description: "Вставьте ссылку на статью на английском языке, выберите действие — и получите выжимку, тезисы или пост для Telegram.",
+    
+    // Form
+    urlLabel: "URL статьи",
+    urlPlaceholder: "Введите URL статьи, например: https://example.com/article",
+    clearButton: "Очистить",
+    clearButtonTitle: "Очистить все поля и результаты",
+    
+    // Buttons
+    aboutButton: "О чем статья?",
+    aboutButtonTitle: "Получить краткое описание статьи",
+    thesisButton: "Тезисы",
+    thesisButtonTitle: "Сформировать тезисы статьи",
+    telegramButton: "Пост для Telegram",
+    telegramButtonTitle: "Создать пост для Telegram на основе статьи",
+    translateButton: "Перевести",
+    translateButtonTitle: "Перевести статью на русский язык",
+    
+    // Status messages
+    loadingArticle: "Загружаю статью…",
+    analyzingArticle: "Анализирую статью…",
+    formingThesis: "Формирую тезисы…",
+    creatingTelegramPost: "Создаю пост для Telegram…",
+    translating: "Перевожу статью…",
+    generating: "Идет генерация…",
+    
+    // Results
+    resultTitle: "Результат",
+    resultPlaceholder: "Здесь появится результат обработки статьи.",
+    copyButton: "Копировать",
+    copyButtonTitle: "Копировать результат",
+    copied: "Скопировано!",
+    
+    // Errors
+    errorTitle: "Ошибка",
+    errorUrlRequired: "Пожалуйста, введите URL статьи.",
+    errorLoadArticle: "Не удалось загрузить статью по этой ссылке.",
+    errorAIAuth: "Ошибка аутентификации с AI сервисом. Проверьте настройки.",
+    errorAILimit: "Превышен лимит запросов к AI сервису. Попробуйте позже.",
+    errorAIService: "Временная ошибка AI сервиса. Попробуйте позже.",
+    errorAIProcess: "Не удалось обработать статью с помощью AI. Попробуйте еще раз.",
+    errorAIParse: "Не удалось обработать статью с помощью AI. Попробуйте еще раз.",
+    errorAIEmpty: "AI сервис вернул пустой результат. Попробуйте еще раз или выберите другую статью.",
+    errorTranslateAuth: "Ошибка аутентификации с сервисом перевода. Проверьте настройки.",
+    errorTranslateLimit: "Превышен лимит запросов к сервису перевода. Попробуйте позже.",
+    errorTranslateService: "Временная ошибка сервиса перевода. Попробуйте позже.",
+    errorTranslate: "Не удалось перевести статью. Попробуйте еще раз.",
+    errorNetwork: "Ошибка подключения к интернету. Проверьте соединение и попробуйте еще раз.",
+    errorUnknown: "Произошла непредвиденная ошибка. Попробуйте еще раз.",
+    
+    // Footer
+    footerService: "Сервис-помощник для работы с англоязычными текстами.",
+    footerAI: "Обработка с помощью AI через OpenRouter.",
+  },
+  me: {
+    // Header
+    appName: "referent‑prevodilac",
+    title: "Kratko i na temu o bilo kom članku na engleskom jeziku",
+    description: "Umetnite link na članak na engleskom jeziku, izaberite radnju — i dobijte sažetak, teze ili post za Telegram.",
+    
+    // Form
+    urlLabel: "URL članka",
+    urlPlaceholder: "Unesite URL članka, na primjer: https://example.com/article",
+    clearButton: "Očisti",
+    clearButtonTitle: "Očisti sva polja i rezultate",
+    
+    // Buttons
+    aboutButton: "O čemu je članak?",
+    aboutButtonTitle: "Dobij kratak opis članka",
+    thesisButton: "Teze",
+    thesisButtonTitle: "Formiraj teze članka",
+    telegramButton: "Post za Telegram",
+    telegramButtonTitle: "Kreiraj post za Telegram na osnovu članka",
+    translateButton: "Prevedi",
+    translateButtonTitle: "Prevedi članak na crnogorski jezik",
+    
+    // Status messages
+    loadingArticle: "Učitavam članak…",
+    analyzingArticle: "Analiziram članak…",
+    formingThesis: "Formiram teze…",
+    creatingTelegramPost: "Kreiram post za Telegram…",
+    translating: "Prevodim članak…",
+    generating: "Generišem…",
+    
+    // Results
+    resultTitle: "Rezultat",
+    resultPlaceholder: "Ovde će se pojaviti rezultat obrade članka.",
+    copyButton: "Kopiraj",
+    copyButtonTitle: "Kopiraj rezultat",
+    copied: "Kopirano!",
+    
+    // Errors
+    errorTitle: "Greška",
+    errorUrlRequired: "Molimo unesite URL članka.",
+    errorLoadArticle: "Nije moguće učitati članak sa ove veze.",
+    errorAIAuth: "Greška autentifikacije sa AI servisom. Provjerite postavke.",
+    errorAILimit: "Prekoračen limit zahtjeva ka AI servisu. Pokušajte kasnije.",
+    errorAIService: "Privremena greška AI servisa. Pokušajte kasnije.",
+    errorAIProcess: "Nije moguće obraditi članak pomoću AI. Pokušajte ponovo.",
+    errorAIParse: "Nije moguće obraditi članak pomoću AI. Pokušajte ponovo.",
+    errorAIEmpty: "AI servis je vratio prazan rezultat. Pokušajte ponovo ili izaberite drugi članak.",
+    errorTranslateAuth: "Greška autentifikacije sa servisom za prevod. Provjerite postavke.",
+    errorTranslateLimit: "Prekoračen limit zahtjeva ka servisu za prevod. Pokušajte kasnije.",
+    errorTranslateService: "Privremena greška servisa za prevod. Pokušajte kasnije.",
+    errorTranslate: "Nije moguće prevesti članak. Pokušajte ponovo.",
+    errorNetwork: "Greška konekcije sa internetom. Provjerite konekciju i pokušajte ponovo.",
+    errorUnknown: "Došlo je do neočekivane greške. Pokušajte ponovo.",
+    
+    // Footer
+    footerService: "Servis-pomoćnik za rad sa tekstovima na engleskom jeziku.",
+    footerAI: "Obrada pomoću AI kroz OpenRouter.",
+  },
+};
+
+export const getTranslation = (lang: Language, key: keyof typeof translations.ru): string => {
+  return translations[lang][key];
+};

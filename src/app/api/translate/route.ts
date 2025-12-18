@@ -2,11 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
-    const { content } = await request.json();
+    const { content, targetLanguage = "ru" } = await request.json();
 
     if (!content || typeof content !== "string") {
       return NextResponse.json(
         { error: "Content is required" },
+        { status: 400 }
+      );
+    }
+
+    if (targetLanguage !== "ru" && targetLanguage !== "me") {
+      return NextResponse.json(
+        { error: "Invalid target language. Must be 'ru' or 'me'" },
         { status: 400 }
       );
     }
@@ -43,11 +50,15 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: "system",
-            content: "Ты профессиональный переводчик. Переведи следующий английский текст на русский язык, сохраняя стиль и структуру оригинала. Переведи только текст, без дополнительных комментариев.",
+            content: targetLanguage === "ru" 
+              ? "Ты профессиональный переводчик. Переведи следующий английский текст на русский язык, сохраняя стиль и структуру оригинала. Переведи только текст, без дополнительных комментариев."
+              : "Ti si profesionalni prevodilac. Prevedi sljedeći tekst sa engleskog jezika na crnogorski jezik, zadržavajući stil i strukturu originala. Prevedi samo tekst, bez dodatnih komentara.",
           },
           {
             role: "user",
-            content: `Переведи на русский язык следующий текст:\n\n${contentToTranslate}`,
+            content: targetLanguage === "ru"
+              ? `Переведи на русский язык следующий текст:\n\n${contentToTranslate}`
+              : `Prevedi na crnogorski jezik sljedeći tekst:\n\n${contentToTranslate}`,
           },
         ],
       }),

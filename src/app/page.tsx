@@ -4,13 +4,15 @@
 import { useState, useEffect, useRef } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, Copy, X } from "lucide-react";
+import { translations, getTranslation, type Language } from "@/lib/translations";
 
 export default function Home() {
   // Управление видимостью кнопки "Перевести"
   // Чтобы показать кнопку, измените значение на true
-  const SHOW_TRANSLATE_BUTTON = true;
+  const SHOW_TRANSLATE_BUTTON = false;
 
   const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [language, setLanguage] = useState<Language>("ru");
   const [url, setUrl] = useState("");
   const [mode, setMode] = useState<"about" | "thesis" | "telegram" | "translate" | null>(
     null,
@@ -21,8 +23,10 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const resultRef = useRef<HTMLDivElement>(null);
+  
+  const t = (key: keyof typeof translations.ru) => getTranslation(language, key);
 
-  // Загружаем тему из localStorage при монтировании и применяем сразу
+  // Загружаем тему и язык из localStorage при монтировании и применяем сразу
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") as "dark" | "light" | null;
     const initialTheme = savedTheme || "dark";
@@ -31,6 +35,11 @@ export default function Home() {
       document.documentElement.classList.add("dark");
     } else {
       document.documentElement.classList.remove("dark");
+    }
+    
+    const savedLanguage = localStorage.getItem("language") as Language | null;
+    if (savedLanguage) {
+      setLanguage(savedLanguage);
     }
   }, []);
 
@@ -44,8 +53,17 @@ export default function Home() {
     }
   }, [theme]);
 
+  // Сохраняем язык в localStorage при изменении
+  useEffect(() => {
+    localStorage.setItem("language", language);
+  }, [language]);
+
   const toggleTheme = () => {
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+  };
+
+  const toggleLanguage = () => {
+    setLanguage((prev) => (prev === "ru" ? "me" : "ru"));
   };
 
   // Функция для очистки всех состояний
@@ -89,54 +107,44 @@ export default function Home() {
   ): string => {
     switch (errorType) {
       case "parse":
-        // Ошибки загрузки статьи (404, 500, таймаут и т.п.)
-        if (statusCode === 404) {
-          return "Не удалось загрузить статью по этой ссылке.";
-        }
-        if (statusCode === 500 || statusCode === 502 || statusCode === 503) {
-          return "Не удалось загрузить статью по этой ссылке.";
-        }
-        if (statusCode === 408 || statusCode === 504) {
-          return "Не удалось загрузить статью по этой ссылке.";
-        }
-        return "Не удалось загрузить статью по этой ссылке.";
+        return t("errorLoadArticle");
       
       case "ai":
         if (statusCode === 401) {
-          return "Ошибка аутентификации с AI сервисом. Проверьте настройки.";
+          return t("errorAIAuth");
         }
         if (statusCode === 429) {
-          return "Превышен лимит запросов к AI сервису. Попробуйте позже.";
+          return t("errorAILimit");
         }
         if (statusCode && (statusCode === 500 || statusCode >= 502)) {
-          return "Временная ошибка AI сервиса. Попробуйте позже.";
+          return t("errorAIService");
         }
-        return "Не удалось обработать статью с помощью AI. Попробуйте еще раз.";
+        return t("errorAIProcess");
       
       case "translate":
         if (statusCode === 401) {
-          return "Ошибка аутентификации с сервисом перевода. Проверьте настройки.";
+          return t("errorTranslateAuth");
         }
         if (statusCode === 429) {
-          return "Превышен лимит запросов к сервису перевода. Попробуйте позже.";
+          return t("errorTranslateLimit");
         }
         if (statusCode && (statusCode === 500 || statusCode >= 502)) {
-          return "Временная ошибка сервиса перевода. Попробуйте позже.";
+          return t("errorTranslateService");
         }
-        return "Не удалось перевести статью. Попробуйте еще раз.";
+        return t("errorTranslate");
       
       case "network":
-        return "Ошибка подключения к интернету. Проверьте соединение и попробуйте еще раз.";
+        return t("errorNetwork");
       
       case "unknown":
       default:
-        return "Произошла непредвиденная ошибка. Попробуйте еще раз.";
+        return t("errorUnknown");
     }
   };
 
   const handleAction = async (nextMode: "about" | "thesis" | "telegram" | "translate") => {
     if (!url.trim()) {
-      setResult("Пожалуйста, введите URL статьи.");
+      setResult(t("errorUrlRequired"));
       setMode(null);
       setProcessStatus(null);
       setError(null);
@@ -145,7 +153,7 @@ export default function Home() {
 
     setIsLoading(true);
     setMode(nextMode);
-    setProcessStatus("Загружаю статью…");
+    setProcessStatus(t("loadingArticle"));
     setError(null);
     setResult(null);
 
@@ -172,7 +180,7 @@ export default function Home() {
 
       // Проверяем наличие контента
       if (!parsedData.content) {
-        setError("Не удалось загрузить статью по этой ссылке.");
+        setError(t("errorLoadArticle"));
         setResult(null);
         setIsLoading(false);
         setProcessStatus(null);
@@ -181,7 +189,7 @@ export default function Home() {
 
       // Проверяем минимальную длину контента
       if (parsedData.content.trim().length < 50) {
-        setError("Не удалось загрузить статью по этой ссылке.");
+        setError(t("errorLoadArticle"));
         setResult(null);
         setIsLoading(false);
         setProcessStatus(null);
@@ -190,13 +198,16 @@ export default function Home() {
 
       // Если режим перевода, переводим контент
       if (nextMode === "translate") {
-        setProcessStatus("Перевожу статью…");
+        setProcessStatus(t("translating"));
         const translateResponse = await fetch("/api/translate", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ content: parsedData.content }),
+          body: JSON.stringify({ 
+            content: parsedData.content,
+            targetLanguage: language 
+          }),
         });
 
         if (!translateResponse.ok) {
@@ -215,9 +226,9 @@ export default function Home() {
       } else {
         // Для режимов about, thesis, telegram вызываем AI-обработку
         const statusMessages = {
-          about: "Анализирую статью…",
-          thesis: "Формирую тезисы…",
-          telegram: "Создаю пост для Telegram…"
+          about: t("analyzingArticle"),
+          thesis: t("formingThesis"),
+          telegram: t("creatingTelegramPost")
         };
         setProcessStatus(statusMessages[nextMode]);
         const aiResponse = await fetch("/api/ai-process", {
@@ -227,7 +238,8 @@ export default function Home() {
           },
           body: JSON.stringify({ 
             content: parsedData.content,
-            mode: nextMode 
+            mode: nextMode,
+            language: language
           }),
         });
 
@@ -243,7 +255,7 @@ export default function Home() {
         const aiData = await aiResponse.json();
         
         if (!aiData.result || aiData.result.trim().length === 0) {
-          setError("AI сервис вернул пустой результат. Попробуйте еще раз или выберите другую статью.");
+          setError(t("errorAIEmpty"));
           setResult(null);
           setIsLoading(false);
           setProcessStatus(null);
@@ -275,13 +287,22 @@ export default function Home() {
         <header className="space-y-2">
           <div className="flex items-center justify-between">
             <p className="text-xs font-medium uppercase tracking-[0.25em] dark:text-sky-400/90 text-sky-600">
-              референт‑переводчик
+              {t("appName")}
             </p>
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-lg dark:bg-slate-800/80 bg-slate-100 dark:border-slate-700 border-slate-300 dark:hover:bg-slate-700/90 hover:bg-slate-200 transition-colors"
-              aria-label="Переключить тему"
-            >
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleLanguage}
+                className="px-2.5 py-1.5 rounded-lg dark:bg-slate-800/80 bg-slate-100 dark:border-slate-700 border-slate-300 dark:hover:bg-slate-700/90 hover:bg-slate-200 transition-colors text-xs font-medium dark:text-slate-300 text-slate-700 border"
+                aria-label={language === "ru" ? "Switch to Montenegrin" : "Переключить на русский"}
+                title={language === "ru" ? "Switch to Montenegrin" : "Переключить на русский"}
+              >
+                {language === "ru" ? "РУ" : "ME"}
+              </button>
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-lg dark:bg-slate-800/80 bg-slate-100 dark:border-slate-700 border-slate-300 dark:hover:bg-slate-700/90 hover:bg-slate-200 transition-colors"
+                aria-label={language === "ru" ? "Переключить тему" : "Promijeni temu"}
+              >
               {theme === "dark" ? (
                 <svg
                   className="w-5 h-5 dark:text-slate-50 text-slate-900"
@@ -313,38 +334,37 @@ export default function Home() {
               )}
             </button>
           </div>
+          </div>
           <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight dark:text-slate-50 text-slate-900 break-words">
-            Кратко и по делу про любую англоязычную статью
+            {t("title")}
           </h1>
           <p className="text-sm sm:text-base dark:text-slate-300 text-slate-600 max-w-xl break-words">
-            Вставьте ссылку на статью на английском языке, выберите действие —
-            и получите выжимку, тезисы или пост для Telegram.
+            {t("description")}
           </p>
         </header>
 
         <section className="space-y-3 sm:space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
             <label className="block text-sm font-medium dark:text-slate-200 text-slate-700">
-              URL статьи
+              {t("urlLabel")}
             </label>
             {url.trim() && (
               <button
                 type="button"
                 onClick={handleClear}
                 disabled={isLoading}
-                title="Очистить все поля и результаты"
+                title={t("clearButtonTitle")}
                 className="self-start sm:self-auto inline-flex items-center gap-1.5 rounded-lg px-2.5 sm:px-3 py-1.5 text-xs font-medium transition dark:bg-slate-800/80 bg-slate-100 dark:text-slate-300 text-slate-700 dark:border-slate-700 border-slate-300 dark:hover:bg-slate-700/90 hover:bg-slate-200 border disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <X className="h-3.5 w-3.5 flex-shrink-0" />
-                <span className="hidden sm:inline">Очистить</span>
-                <span className="sm:hidden">Очистить</span>
+                <span>{t("clearButton")}</span>
               </button>
             )}
           </div>
           <div className="flex flex-col gap-3">
             <input
               type="url"
-              placeholder="Введите URL статьи, например: https://example.com/article"
+              placeholder={t("urlPlaceholder")}
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               className="w-full rounded-xl dark:border-slate-700 border-slate-300 dark:bg-slate-900/60 bg-white dark:text-slate-50 text-slate-900 px-3 sm:px-4 py-2.5 text-sm dark:placeholder:text-slate-500 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition border"
@@ -356,54 +376,54 @@ export default function Home() {
               type="button"
               onClick={() => handleAction("about")}
               disabled={isLoading}
-              title="Получить краткое описание статьи"
+              title={t("aboutButtonTitle")}
               className={`w-full sm:w-auto inline-flex items-center justify-center rounded-full px-4 py-2.5 text-sm font-medium transition border ${
                 mode === "about"
                   ? "bg-sky-500 text-white border-sky-400 shadow-lg shadow-sky-500/30"
                   : "dark:bg-slate-800/80 bg-slate-100 dark:text-slate-50 text-slate-900 dark:border-slate-700 border-slate-300 dark:hover:bg-slate-700/90 hover:bg-slate-200"
               } ${isLoading ? "opacity-70 cursor-wait" : ""}`}
             >
-              О чем статья?
+              {t("aboutButton")}
             </button>
             <button
               type="button"
               onClick={() => handleAction("thesis")}
               disabled={isLoading}
-              title="Сформировать тезисы статьи"
+              title={t("thesisButtonTitle")}
               className={`w-full sm:w-auto inline-flex items-center justify-center rounded-full px-4 py-2.5 text-sm font-medium transition border ${
                 mode === "thesis"
                   ? "bg-sky-500 text-white border-sky-400 shadow-lg shadow-sky-500/30"
                   : "dark:bg-slate-800/80 bg-slate-100 dark:text-slate-50 text-slate-900 dark:border-slate-700 border-slate-300 dark:hover:bg-slate-700/90 hover:bg-slate-200"
               } ${isLoading ? "opacity-70 cursor-wait" : ""}`}
             >
-              Тезисы
+              {t("thesisButton")}
             </button>
             <button
               type="button"
               onClick={() => handleAction("telegram")}
               disabled={isLoading}
-              title="Создать пост для Telegram на основе статьи"
+              title={t("telegramButtonTitle")}
               className={`w-full sm:w-auto inline-flex items-center justify-center rounded-full px-4 py-2.5 text-sm font-medium transition border ${
                 mode === "telegram"
                   ? "bg-sky-500 text-white border-sky-400 shadow-lg shadow-sky-500/30"
                   : "dark:bg-slate-800/80 bg-slate-100 dark:text-slate-50 text-slate-900 dark:border-slate-700 border-slate-300 dark:hover:bg-slate-700/90 hover:bg-slate-200"
               } ${isLoading ? "opacity-70 cursor-wait" : ""}`}
             >
-              Пост для Telegram
+              {t("telegramButton")}
             </button>
             {SHOW_TRANSLATE_BUTTON && (
               <button
                 type="button"
                 onClick={() => handleAction("translate")}
                 disabled={isLoading}
-                title="Перевести статью на русский язык"
+                title={t("translateButtonTitle")}
                 className={`w-full sm:w-auto inline-flex items-center justify-center rounded-full px-4 py-2.5 text-sm font-medium transition border ${
                   mode === "translate"
                     ? "bg-sky-500 text-white border-sky-400 shadow-lg shadow-sky-500/30"
                     : "dark:bg-slate-800/80 bg-slate-100 dark:text-slate-50 text-slate-900 dark:border-slate-700 border-slate-300 dark:hover:bg-slate-700/90 hover:bg-slate-200"
                 } ${isLoading ? "opacity-70 cursor-wait" : ""}`}
               >
-                Перевести
+                {t("translateButton")}
               </button>
             )}
           </div>
@@ -420,7 +440,7 @@ export default function Home() {
         {error && (
           <Alert variant="destructive" className="break-words">
             <AlertCircle className="h-4 w-4 flex-shrink-0" />
-            <AlertTitle>Ошибка</AlertTitle>
+            <AlertTitle>{t("errorTitle")}</AlertTitle>
             <AlertDescription className="break-words">{error}</AlertDescription>
           </Alert>
         )}
@@ -431,23 +451,23 @@ export default function Home() {
         >
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <h2 className="text-sm font-semibold dark:text-slate-100 text-slate-900">
-              Результат
+              {t("resultTitle")}
             </h2>
             <div className="flex items-center gap-2 flex-shrink-0">
               {isLoading && (
                 <span className="text-xs dark:text-sky-400 text-sky-600 animate-pulse whitespace-nowrap">
-                  Идет генерация…
+                  {t("generating")}
                 </span>
               )}
               {result && !isLoading && (
                 <button
                   type="button"
                   onClick={handleCopy}
-                  title="Копировать результат"
+                  title={t("copyButtonTitle")}
                   className="inline-flex items-center gap-1.5 rounded-lg px-2 sm:px-2.5 py-1.5 text-xs font-medium transition dark:bg-slate-800/80 bg-slate-100 dark:text-slate-300 text-slate-700 dark:border-slate-700 border-slate-300 dark:hover:bg-slate-700/90 hover:bg-slate-200 border"
                 >
                   <Copy className="h-3.5 w-3.5 flex-shrink-0" />
-                  <span className="hidden sm:inline">{copied ? "Скопировано!" : "Копировать"}</span>
+                  <span className="hidden sm:inline">{copied ? t("copied") : t("copyButton")}</span>
                   <span className="sm:hidden">{copied ? "✓" : ""}</span>
                 </button>
               )}
@@ -455,14 +475,14 @@ export default function Home() {
           </div>
 
           <div className="mt-1 text-sm leading-relaxed dark:text-slate-200 text-slate-700 whitespace-pre-wrap break-words overflow-wrap-anywhere">
-            {result ?? "Здесь появится результат обработки статьи."}
+            {result ?? t("resultPlaceholder")}
           </div>
         </section>
 
         <footer className="pt-1 text-[11px] sm:text-xs dark:text-slate-500 text-slate-400 flex flex-wrap items-center gap-x-2 gap-y-1 break-words">
-          <span>Сервис-помощник для работы с англоязычными текстами.</span>
+          <span>{t("footerService")}</span>
           <span className="hidden sm:inline">·</span>
-          <span>Обработка с помощью AI через OpenRouter.</span>
+          <span>{t("footerAI")}</span>
         </footer>
       </main>
     </div>
