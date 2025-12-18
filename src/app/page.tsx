@@ -2,11 +2,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 export default function Home() {
   // Управление видимостью кнопки "Перевести"
   // Чтобы показать кнопку, измените значение на true
-  const SHOW_TRANSLATE_BUTTON = false;
+  const SHOW_TRANSLATE_BUTTON = true;
 
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [url, setUrl] = useState("");
@@ -16,6 +18,7 @@ export default function Home() {
   const [result, setResult] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [processStatus, setProcessStatus] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Загружаем тему из localStorage при монтировании и применяем сразу
   useEffect(() => {
@@ -43,17 +46,73 @@ export default function Home() {
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
   };
 
+  // Функция для преобразования ошибок в дружественные сообщения
+  const getFriendlyErrorMessage = (
+    errorType: "parse" | "ai" | "translate" | "network" | "unknown",
+    statusCode?: number,
+    originalError?: string
+  ): string => {
+    switch (errorType) {
+      case "parse":
+        // Ошибки загрузки статьи (404, 500, таймаут и т.п.)
+        if (statusCode === 404) {
+          return "Не удалось загрузить статью по этой ссылке.";
+        }
+        if (statusCode === 500 || statusCode === 502 || statusCode === 503) {
+          return "Не удалось загрузить статью по этой ссылке.";
+        }
+        if (statusCode === 408 || statusCode === 504) {
+          return "Не удалось загрузить статью по этой ссылке.";
+        }
+        return "Не удалось загрузить статью по этой ссылке.";
+      
+      case "ai":
+        if (statusCode === 401) {
+          return "Ошибка аутентификации с AI сервисом. Проверьте настройки.";
+        }
+        if (statusCode === 429) {
+          return "Превышен лимит запросов к AI сервису. Попробуйте позже.";
+        }
+        if (statusCode && (statusCode === 500 || statusCode >= 502)) {
+          return "Временная ошибка AI сервиса. Попробуйте позже.";
+        }
+        return "Не удалось обработать статью с помощью AI. Попробуйте еще раз.";
+      
+      case "translate":
+        if (statusCode === 401) {
+          return "Ошибка аутентификации с сервисом перевода. Проверьте настройки.";
+        }
+        if (statusCode === 429) {
+          return "Превышен лимит запросов к сервису перевода. Попробуйте позже.";
+        }
+        if (statusCode && (statusCode === 500 || statusCode >= 502)) {
+          return "Временная ошибка сервиса перевода. Попробуйте позже.";
+        }
+        return "Не удалось перевести статью. Попробуйте еще раз.";
+      
+      case "network":
+        return "Ошибка подключения к интернету. Проверьте соединение и попробуйте еще раз.";
+      
+      case "unknown":
+      default:
+        return "Произошла непредвиденная ошибка. Попробуйте еще раз.";
+    }
+  };
+
   const handleAction = async (nextMode: "about" | "thesis" | "telegram" | "translate" | "illustration") => {
     if (!url.trim()) {
       setResult("Пожалуйста, введите URL статьи.");
       setMode(null);
       setProcessStatus(null);
+      setError(null);
       return;
     }
 
     setIsLoading(true);
     setMode(nextMode);
     setProcessStatus("Загружаю статью…");
+    setError(null);
+    setResult(null);
 
     try {
       // Сначала парсим статью
@@ -66,10 +125,9 @@ export default function Home() {
       });
 
       if (!parseResponse.ok) {
-        const errorData = await parseResponse.json();
-        setResult(
-          `Ошибка: ${errorData.error || "Не удалось обработать статью"}`
-        );
+        const errorMessage = getFriendlyErrorMessage("parse", parseResponse.status);
+        setError(errorMessage);
+        setResult(null);
         setIsLoading(false);
         setProcessStatus(null);
         return;
@@ -79,7 +137,8 @@ export default function Home() {
 
       // Проверяем наличие контента
       if (!parsedData.content) {
-        setResult("Ошибка: Не удалось извлечь контент статьи для обработки.\n\nПопробуйте другой URL или проверьте, что статья доступна.");
+        setError("Не удалось загрузить статью по этой ссылке.");
+        setResult(null);
         setIsLoading(false);
         setProcessStatus(null);
         return;
@@ -87,7 +146,8 @@ export default function Home() {
 
       // Проверяем минимальную длину контента
       if (parsedData.content.trim().length < 50) {
-        setResult("Ошибка: Извлеченный контент слишком короткий для обработки.\n\nВозможно, статья не была полностью загружена. Попробуйте другой URL.");
+        setError("Не удалось загрузить статью по этой ссылке.");
+        setResult(null);
         setIsLoading(false);
         setProcessStatus(null);
         return;
@@ -105,12 +165,9 @@ export default function Home() {
         });
 
         if (!translateResponse.ok) {
-          const errorData = await translateResponse.json();
-          const errorMessage = errorData.error || "Не удалось перевести статью";
-          const errorDetails = errorData.details ? `\n\nДетали: ${errorData.details}` : "";
-          setResult(
-            `Ошибка перевода: ${errorMessage}${errorDetails}`
-          );
+          const errorMessage = getFriendlyErrorMessage("translate", translateResponse.status);
+          setError(errorMessage);
+          setResult(null);
           setIsLoading(false);
           setProcessStatus(null);
           return;
@@ -119,6 +176,7 @@ export default function Home() {
         const translateData = await translateResponse.json();
         setResult(translateData.translation || "Перевод не получен.");
         setProcessStatus(null);
+        setError(null);
       } else {
         // Для режимов about, thesis, telegram, illustration вызываем AI-обработку
         const statusMessages = {
@@ -140,27 +198,9 @@ export default function Home() {
         });
 
         if (!aiResponse.ok) {
-          let errorData;
-          try {
-            errorData = await aiResponse.json();
-          } catch {
-            errorData = { 
-              error: `HTTP ${aiResponse.status}: ${aiResponse.statusText}`,
-              details: "Не удалось обработать ответ от сервера"
-            };
-          }
-          
-          const errorMessage = errorData.error || "Не удалось обработать статью с помощью AI";
-          const errorDetails = errorData.details ? `\n\nДетали: ${errorData.details}` : "";
-          const suggestion = aiResponse.status === 429 
-            ? "\n\n💡 Совет: Подождите немного и попробуйте снова."
-            : aiResponse.status === 500
-            ? "\n\n💡 Совет: Попробуйте еще раз через несколько секунд."
-            : "";
-          
-          setResult(
-            `Ошибка AI-обработки: ${errorMessage}${errorDetails}${suggestion}`
-          );
+          const errorMessage = getFriendlyErrorMessage("ai", aiResponse.status);
+          setError(errorMessage);
+          setResult(null);
           setIsLoading(false);
           setProcessStatus(null);
           return;
@@ -169,7 +209,8 @@ export default function Home() {
         const aiData = await aiResponse.json();
         
         if (!aiData.result || aiData.result.trim().length === 0) {
-          setResult("Ошибка: AI сервис вернул пустой результат.\n\nПопробуйте еще раз или выберите другую статью.");
+          setError("AI сервис вернул пустой результат. Попробуйте еще раз или выберите другую статью.");
+          setResult(null);
           setIsLoading(false);
           setProcessStatus(null);
           return;
@@ -177,13 +218,17 @@ export default function Home() {
         
         setResult(aiData.result);
         setProcessStatus(null);
+        setError(null);
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error("Error in handleAction:", error);
-      setResult(
-        `Ошибка при обработке запроса:\n\n${errorMessage}\n\nПроверьте подключение к интернету и попробуйте еще раз.`
-      );
+      // Проверяем, является ли ошибка сетевой
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        setError(getFriendlyErrorMessage("network"));
+      } else {
+        setError(getFriendlyErrorMessage("unknown"));
+      }
+      setResult(null);
       setProcessStatus(null);
     } finally {
       setIsLoading(false);
@@ -334,6 +379,14 @@ export default function Home() {
               {processStatus}
             </p>
           </div>
+        )}
+
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Ошибка</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
 
         <section className="rounded-xl dark:border-slate-800 border-slate-200 dark:bg-slate-950/40 bg-slate-50/80 border p-4 sm:p-5 min-h-[140px] space-y-2">
